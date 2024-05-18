@@ -1,0 +1,5 @@
+env/
+.vscode/
+.streamlit/secrets.toml
+__pycache__/
+/test.ipynb
