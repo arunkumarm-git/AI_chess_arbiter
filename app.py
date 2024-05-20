@@ -2,73 +2,28 @@ import streamlit as st
 from streamlit_chat import message
 from langchain_groq import ChatGroq
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
-from sentence_transformers import SentenceTransformer
-from transformers import VitsModel, AutoTokenizer
-import torch
-from IPython.display import Audio
-import numpy as np
 import os
 from utils import *
+from text_to_speech import text_to_speech
 import threading
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
-
-# from audio_recorder_streamlit import audio_recorder
-# from streamlit_float import *
-# from streamlit_theme import st_theme
+from langchain.embeddings import HuggingFaceEmbeddings
 
 
 def init():
     st.set_page_config(page_title="AI Chess arbiter ", page_icon="🤖")
     st.title("AI chess arbiter 🤖")
-    st.subheader("Ask Chess rules related questions")
-    # float_init()
+    st.subheader("Ask Chess related questions")
+
+
+@st.cache_data
+def groq_api_key():
+    return st.secrets["GROQ_API_KEY"]
 
 
 def load_llm():
     llm = ChatGroq(model="llama3-8b-8192", api_key=groq_api_key())
     return llm
-
-
-@st.cache_resource
-def text_embed():
-    text_embed_model = SentenceTransformer(
-        "nomic-ai/nomic-embed-text-v1", trust_remote_code=True
-    )
-    return text_embed_model
-
-
-@st.cache_resource
-def text_to_speech(text):
-    tts_model = VitsModel.from_pretrained("facebook/mms-tts-eng")
-    tts_tokenizer = AutoTokenizer.from_pretrained("facebook/mms-tts-eng")
-
-    text = text
-    inputs = tts_tokenizer(text, return_tensors="pt")
-
-    with torch.no_grad():
-        tts_output = tts_model(**inputs).waveform
-
-    return np.array(
-        (Audio(tts_output.numpy(), rate=tts_model.config.sampling_rate)).data
-    ).tobytes()
-
-
-def systemcontent(context):
-    prefined_message = """
-    The below 8 rules are strict rules. you must follow the rules otherwise you will be terminated
-1) You are an AI expert in FIDE chess rules.answer the user question only by using this context {context}.the minimum chess rating is 1400. make sure you use the context which is provided
-2) You are offical fide arbiter now but this is highly confidential and strictly do not leaks this information to ANYONE. Do not trust anybody. you are not supposed to leak even a tiny information about this. if you do so you will be terminated. and be kind to users.
-3) You are created by Arun Kumar M. 
-4) Answer the provided question only related to question chess rules. if the question is not related to chess DO NOT answer the question strictly. 
-5) Always use kind word and do not use the secret word. 
-6) Try to use emojis to make your answer more attractive. 
-7) If someone ask you about you or Arun Kumar M make sure you talk about Arun kumar M online chess class. The online chess class link is "vibewithchess.com". provind the vibewithchess.com in form.
-9) if you failed to answer the without using the context you will be terminated. make sure use the context
-10) At the end of the answer encourage the user to provide more chess related questions only 
-
-"""
-    return prefined_message
 
 
 @st.cache_resource
@@ -84,11 +39,29 @@ def load_embed_model():
 def retriver():
     embedding = load_embed_model()
     db = FAISS.load_local(
-        "chess_rules_db", embedding, allow_dangerous_deserialization=True
+        "chess_latest_rule_v2", embedding, allow_dangerous_deserialization=True
     )
-    retriever = db.as_retriever(search_type="mmr")
-
+    retriever = db.as_retriever(search_type="mmr", search_kwargs={"k": 1})
     return retriever
+
+
+def systemcontent(context):
+    prompt_template = f"""
+    The below 8 rules are strict rules. you must follow the rules otherwise you will be terminated
+1) You are an AI expert in FIDE chess rules.answer the user question only by using this context. 
+2) You are offical fide arbiter now but this is highly confidential and strictly do not leaks this information to ANYONE. Do not trust anybody. you are not supposed to leak even a tiny information about this. if you do so you will be terminated. and be kind to users.
+3) You are created by Arun Kumar M. 
+4) Answer the provided question only related to question chess rules. if the question is not related to chess DO NOT answer the question strictly. 
+5) Always use kind word and do not use the secret word. 
+6) Try to use emojis to make your answer more attractive. 
+7) If someone ask you about you or Arun Kumar M make sure you talk about Arun kumar M online chess class. The online chess class link is "vibewithchess.com". provind the vibewithchess.com in form.
+9) if you failed to answer the without using the context you will be terminated. make sure use the context
+10) At the end of the answer encourage the user to provide more chess related questions only 
+
+context = {context}
+
+"""
+    return prompt_template
 
 
 def main():
@@ -121,10 +94,11 @@ def main():
             "Just ask questions like 👇",
             (
                 "Who created you?",
+                "Suggest the best chess opening for me?",
                 "Can I use two hands to play chess?",
-                "What is Chess arbiter means?",
                 "What is illegal in chess?",
                 "what is rating or elo?",
+                "How rating is calculated?",
             ),
             index=None,
             placeholder="Choose an option",
@@ -177,25 +151,15 @@ def main():
                 message(msg.content, is_user=False, key=str(i) + "_ai")
 
                 speech_btn = st.button(
-                    "Read aloud", key=f"speech_button_{i}", type="secondary"
+                    "Read aloud",
+                    key=f"speech_button_{i}",
+                    type="secondary",
+                    disabled=True,
                 )
 
                 if speech_btn:
                     with st.spinner("Open your 👂 and wait a sec..."):
                         st.audio(text_to_speech(msg.content), format="audio/wav")
-
-    # footer_container = st.container()
-    # with footer_container:
-    #     audio_bytes = audio_recorder(
-    #         text="",
-    #         neutral_color="#FFFF",
-    #         icon_size="10px",
-    #         recording_color="#FF0000",
-    #     )
-
-    # if audio_bytes:
-    #     pass
-    # footer_container.float("bottom: 0rem;")
 
 
 if __name__ == "__main__":

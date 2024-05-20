@@ -3,3 +3,5 @@ env/
 .streamlit/secrets.toml
 __pycache__/
 /test.ipynb
+/test.py
+documents/
