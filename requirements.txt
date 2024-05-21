@@ -10,3 +10,4 @@ ipython
 st-theme
 langchain_community
 faiss-cpu
+
