@@ -9,5 +9,4 @@ sentence_transformers
 ipython
 st-theme
 langchain_community
-faiss-gpu
 faiss-cpu
