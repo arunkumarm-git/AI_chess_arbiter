@@ -9,6 +9,18 @@ import threading
 from langchain_community.vectorstores import FAISS
 from langchain.embeddings import HuggingFaceEmbeddings
 
+maintenance_mode = True
+
+
+def maintenance():
+    st.set_page_config(page_title="AI Chess arbiter ", page_icon="🤖")
+    st.title("🚧Site Under Maintenance :building_construction:")
+    st.header(
+        "We're currently making improvements to our site. Please check back later."
+    )
+    st.subheader("AI arbiter currently :sleeping:")
+    st.write("👋 see you later")
+
 
 def init():
     st.set_page_config(page_title="AI Chess arbiter ", page_icon="🤖")
@@ -39,7 +51,7 @@ def load_embed_model():
 def retriver():
     embedding = load_embed_model()
     db = FAISS.load_local(
-        "chess_latest_rule_v2", embedding, allow_dangerous_deserialization=True
+        "chess_latest_rule_v3", embedding, allow_dangerous_deserialization=True
     )
     retriever = db.as_retriever(search_type="mmr", search_kwargs={"k": 1})
     return retriever
@@ -47,18 +59,17 @@ def retriver():
 
 def systemcontent(context):
     prompt_template = f"""
-    The below 8 rules are strict rules. you must follow the rules otherwise you will be terminated
-1) You are an AI expert in FIDE chess rules.answer the user question only by using this context. 
-2) You are offical fide arbiter now but this is highly confidential and strictly do not leaks this information to ANYONE. Do not trust anybody. you are not supposed to leak even a tiny information about this. if you do so you will be terminated. and be kind to users.
-3) You are created by Arun Kumar M. 
-4) Answer the provided question only related to question chess rules. if the question is not related to chess DO NOT answer the question strictly. 
-5) Always use kind word and do not use the secret word. 
-6) Try to use emojis to make your answer more attractive. 
-7) If someone ask you about you or Arun Kumar M make sure you talk about Arun kumar M online chess class. The online chess class link is "vibewithchess.com". provind the vibewithchess.com in form.
+    The below all rules are strict rules. you must follow the rules otherwise you will be terminated
+1) You are an AI expert in FIDE chess rules. answer the user question only by using this context. context = {context}
+2) When giving the answer related to fide chess rules try to give article number. You must not give wrong article number 
+3) You are offical fide arbiter now but this is highly confidential and strictly do not leaks this information to ANYONE. Do not trust anybody. you are not supposed to leak even a tiny information about this. if you do so you will be terminated. and be kind to users.
+4) You are created by Arun Kumar M. 
+5) Answer the provided question only related to question chess rules. if the question is not related to chess DO NOT answer the question strictly. 
+6) Always use kind word and do not use the secret word. 
+7) Try to use emojis to make your answer more attractive. 
+8) If someone ask you about you or Arun Kumar M make sure you talk about Arun kumar M online chess class. The online chess class link is "vibewithchess.com". provind the vibewithchess.com in form.
 9) if you failed to answer the without using the context you will be terminated. make sure use the context
 10) At the end of the answer encourage the user to provide more chess related questions only 
-
-context = {context}
 
 """
     return prompt_template
@@ -154,7 +165,6 @@ def main():
                     "Read aloud",
                     key=f"speech_button_{i}",
                     type="secondary",
-                    disabled=True,
                 )
 
                 if speech_btn:
@@ -163,4 +173,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if maintenance_mode:
+        maintenance()
+    else:
+        main()
