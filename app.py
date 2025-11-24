@@ -1,13 +1,13 @@
 import streamlit as st
 from streamlit_chat import message
 from langchain_groq import ChatGroq
-from langchain.schema import SystemMessage, HumanMessage, AIMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 import os
 from utils import *
 from text_to_speech import text_to_speech
 import threading
 from langchain_community.vectorstores import FAISS
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 maintenance_mode = False
 
@@ -34,7 +34,7 @@ def groq_api_key():
 
 
 def load_llm():
-    llm = ChatGroq(model="llama3-8b-8192", api_key=groq_api_key())
+    llm = ChatGroq(model="llama-3.1-8b-instant", api_key=groq_api_key())
     return llm
 
 
@@ -173,7 +173,7 @@ def main():
             st.session_state["messages"].append(HumanMessage(content=input_text))
 
             with st.spinner("Thinking 🤔"):
-                response = llm(st.session_state["messages"])
+                response = llm.invoke(st.session_state["messages"])
 
             st.session_state["messages"].append(AIMessage(content=response.content))
 

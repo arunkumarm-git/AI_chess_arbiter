@@ -1,4 +1,4 @@
-env/
+myenv/
 .vscode/
 .streamlit/secrets.toml
 __pycache__/
